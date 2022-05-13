@@ -1,10 +1,13 @@
-import express from "express";
+import express = require("express");
 import * as cors from "cors";
+import { inject } from "inversify";
+import { AppDBConnection } from "../config/database";
+require("dotenv").config();
 
 export class DayTaskApp {
     private app: express.Express;
 
-    constructor() {
+    constructor(@inject(AppDBConnection) private appDBConnection: AppDBConnection) {
         this.app = express();
         this.app.use(express.json());
         this.app.use(function (req, res, next) {
@@ -22,6 +25,25 @@ export class DayTaskApp {
     }
 
     public async start(): Promise<void> {
-        
+        this.initDB();
+        this.listenToRequests();
+    }
+
+    public async initDB(): Promise<void> {
+        this.appDBConnection.connect().then((r) => {
+            console.log(`success: ${JSON.stringify(r)}`)
+        })
+    }
+
+
+    private listenToRequests(): void {
+        const http = require("http");
+        const PORT = process.env.APP_PORT || 3000;
+
+        const server = http.createServer(this.app);
+
+        server.listen(PORT, () => {
+            console.log(`Server Started on port ${PORT}`)
+        })
     }
 }
